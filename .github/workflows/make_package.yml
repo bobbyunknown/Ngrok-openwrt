@@ -26,31 +26,32 @@ on:
         default: '1.0.0'
         type: string
 
-jobs:
+jobs: 
   build_ipk:
     permissions:
       contents: write
-    name: Build Packages
+    name: Build Neko
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         release:
-          - '23.05.4'
+          - 23.05.4
         arch:
-          - 'x86_64'
+          - x86_64
     
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           ref: main
 
       - name: Preparing Build
         run: |
+          echo ""
           mkdir feeds artifacts
-          cp -rf ./ngrok-x86 ./feeds
           cp -rf ./luci-app-ngrok ./feeds
+          cp -rf ./ngrok-x86 ./feeds
 
       - name: Building Packages
         uses: nosignals/gh-action-sdk@main
