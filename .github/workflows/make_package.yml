@@ -43,12 +43,14 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Preparing Build
         run: |
-          mkdir -p feeds
-          cp -rf ./ngrok-x86/* ./feeds/
-          cp -rf ./luci-app-ngrok/* ./feeds/
+          mkdir feeds artifacts
+          cp -rf ./ngrok-x86 ./feeds
+          cp -rf ./luci-app-ngrok ./feeds
 
       - name: Building Packages
         uses: nosignals/gh-action-sdk@main
