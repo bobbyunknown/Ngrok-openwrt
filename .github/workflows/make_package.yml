@@ -10,16 +10,11 @@
 # network services through public endpoints. It features a user-friendly
 # web interface for easy tunnel management and configuration.
 
-name: Build Ngrok Package & Core
+name: Build Ngrok Package
 
 on:
   workflow_dispatch:
     inputs:
-      ngrok_version:
-        description: 'Ngrok version'
-        required: true
-        default: 'v3.19.1'
-        type: string
       luci-app-ngrok_version:
         description: 'LuCI App Ngrok version'
         required: true
@@ -51,7 +46,6 @@ jobs:
           echo ""
           mkdir feeds artifacts
           cp -rf ./luci-app-ngrok ./feeds
-          cp -rf ./ngrok-x86 ./feeds
 
       - name: Building Packages
         uses: nosignals/gh-action-sdk@main
