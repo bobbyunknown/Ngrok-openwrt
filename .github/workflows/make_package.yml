@@ -27,84 +27,53 @@ on:
         type: string
 
 jobs:
-  build_core:
-    permissions:
-      contents: write
-    name: Build Core
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        release:
-          - 23.05.4
-        arch:
-          - x86_64
-          - arm_cortex-a7_neon-vfpv4
-          - aarch64_cortex-a53
-          - aarch64_cortex-a72
-          - aarch64_generic
-
+  build_core_arm:
+    name: Build Core (arm_cortex-a7)
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Preparing Core
+      - uses: actions/checkout@v4
+      - name: Prepare Build
         run: |
           mkdir -p feeds artifacts
           cp -rf ./ngrok-arm ./feeds/
-          cp -rf ./ngrok-x86 ./feeds/
-
-      - name: Building Core Packages
-        uses: nosignals/gh-action-sdk@main
+      - uses: nosignals/gh-action-sdk@main
         env:
-          ARCH: ${{ matrix.arch }}-${{ matrix.release }}
-          ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
-          FEED_DIR: ${{ github.workspace }}/feeds
+          ARCH: arm_cortex-a7_neon-vfpv4-23.05.4
           PACKAGES: ngrok
           NO_SHFMT_CHECK: 1
 
-      - name: Delivering Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: ngrok-${{ matrix.release }}_${{ matrix.arch }}
-          path: |
-            ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/ngrok*
+  build_core_x86:
+    name: Build Core (x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Build
+        run: |
+          mkdir -p feeds artifacts
+          cp -rf ./ngrok-x86 ./feeds/
+      - uses: nosignals/gh-action-sdk@main
+        env:
+          ARCH: x86_64-23.05.4
+          PACKAGES: ngrok
+          NO_SHFMT_CHECK: 1
 
   build_luci:
-    permissions:
-      contents: write
     name: Build LuCI Package
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Preparing Package
+      - uses: actions/checkout@v4
+      - name: Prepare Build
         run: |
           mkdir -p feeds artifacts
           cp -rf ./luci-app-ngrok ./feeds/
-
-      - name: Building LuCI Package
-        uses: nosignals/gh-action-sdk@main
+      - uses: nosignals/gh-action-sdk@main
         env:
           ARCH: all
-          ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
-          FEED_DIR: ${{ github.workspace }}/feeds
           PACKAGES: luci-app-ngrok
           NO_SHFMT_CHECK: 1
 
-      - name: Delivering Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: luci-app-ngrok
-          path: ${{ github.workspace }}/artifacts/bin/packages/*/action/luci-app-ngrok*
-
   push_packages:
-    needs: [build_core, build_luci]
+    needs: [build_core_arm, build_core_x86, build_luci]
     name: Push Packages to Release
     permissions:
       contents: write
