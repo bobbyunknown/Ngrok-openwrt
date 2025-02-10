@@ -7,7 +7,7 @@ PKG_RELEASE:=1
 PKG_MAINTAINER:=BobbyUnknown <bobbyun.known88@gmail.com>
 
 LUCI_TITLE:=LuCI networking tools
-LUCI_DEPENDS:=+ruby +ruby-yaml
+LUCI_DEPENDS:=+ngrok +ruby +ruby-yaml
 LUCI_PKGARCH:=all
 
 PKG_LICENSE:=MIT
