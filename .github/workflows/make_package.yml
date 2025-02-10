@@ -27,36 +27,43 @@ on:
         type: string
 
 jobs:
-  build_packages:
-    name: Build Packages
-    runs-on: ubuntu-latest
+  build_ipk:
     permissions:
       contents: write
+    name: Build Packages
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - '23.05.4'
+        arch:
+          - 'x86_64'
+    
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Build in Docker
-        uses: docker://openwrt/sdk:aarch64_generic-openwrt-24.10
-        with:
-          args: |
-            sh -c "
-            mkdir -p feeds/ngrok feeds/luci &&
-            cp -rf ./ngrok-arm/* ./feeds/ngrok/ &&
-            cp -rf ./luci-app-ngrok/* ./feeds/luci/ &&
-            ./scripts/feeds update -a &&
-            ./scripts/feeds install -a &&
-            echo 'CONFIG_PACKAGE_ngrok=y' > .config &&
-            echo 'CONFIG_PACKAGE_luci-app-ngrok=y' >> .config &&
-            make defconfig &&
-            make package/ngrok/compile -j$(nproc) &&
-            make package/luci-app-ngrok/compile -j$(nproc)
-            "
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Preparing Build
+        run: |
+          mkdir feeds artifacts
+          cp -rf ./ngrok-x86/* ./feeds/
+          cp -rf ./luci-app-ngrok/* ./feeds/
+
+      - name: Building Packages
+        uses: nosignals/gh-action-sdk@main
+        env:
+          ARCH: ${{ matrix.arch }}-${{ matrix.release }}
+          ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
+          FEED_DIR: ${{ github.workspace }}/feeds
+          PACKAGES: ngrok luci-app-ngrok
+          NO_SHFMT_CHECK: 1
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: bin/packages/aarch64_generic/action/*
+          file: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/*
           file_glob: true
           overwrite: true
           tag: ${{ inputs.luci-app-ngrok_version }}
@@ -76,5 +83,5 @@ jobs:
             
             ### 📋 Requirements:
             - OpenWrt 23+
-            - Architecture: aarch64
+            - Architecture: x86_64
 
