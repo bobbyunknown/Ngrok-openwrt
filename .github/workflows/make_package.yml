@@ -27,82 +27,44 @@ on:
         type: string
 
 jobs:
-  build_core_arm:
-    name: Build Core (arm_cortex-a7)
+  build_packages:
+    name: Build Packages
     runs-on: ubuntu-latest
+    container:
+      image: openwrt/sdk:aarch64_generic-openwrt-24.10
     steps:
       - uses: actions/checkout@v4
+      
       - name: Prepare Build
         run: |
-          mkdir -p feeds artifacts
-          cp -rf ./ngrok-arm ./feeds/
-      - uses: nosignals/gh-action-sdk@main
-        env:
-          ARCH: arm_cortex-a7_neon-vfpv4-23.05.4
-          PACKAGES: ngrok
-          NO_SHFMT_CHECK: 1
-
-  build_core_x86:
-    name: Build Core (x86_64)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Prepare Build
+          mkdir -p feeds/ngrok feeds/luci
+          cp -rf ./ngrok-arm/* ./feeds/ngrok/
+          cp -rf ./luci-app-ngrok/* ./feeds/luci/
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          
+      - name: Configure Build
         run: |
-          mkdir -p feeds artifacts
-          cp -rf ./ngrok-x86 ./feeds/
-      - uses: nosignals/gh-action-sdk@main
+          echo "CONFIG_PACKAGE_ngrok=y" > .config
+          echo "CONFIG_PACKAGE_luci-app-ngrok=y" >> .config
+          make defconfig
+          
+      - name: Build Packages
         env:
-          ARCH: x86_64-23.05.4
-          PACKAGES: ngrok
-          NO_SHFMT_CHECK: 1
-
-  build_luci:
-    name: Build LuCI Package
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Prepare Build
+          NGROK_VERSION: ${{ inputs.ngrok_version }}
+          LUCI_APP_VERSION: ${{ inputs.luci-app-ngrok_version }}
         run: |
-          mkdir -p feeds artifacts
-          cp -rf ./luci-app-ngrok ./feeds/
-      - uses: nosignals/gh-action-sdk@main
-        env:
-          ARCH: all
-          PACKAGES: luci-app-ngrok
-          NO_SHFMT_CHECK: 1
-
-  push_packages:
-    needs: [build_core_arm, build_core_x86, build_luci]
-    name: Push Packages to Release
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download temporary artifact
-        uses: actions/download-artifact@v4
-        
-      - name: Moving artifact to releases
-        shell: bash
-        run: |
-          mkdir ./release
-          # Copy core packages
-          cp -rf ./ngrok-23.05.4_x86_64/ngrok* ./release/
-          cp -rf ./ngrok-23.05.4_arm_cortex-a7_neon-vfpv4/ngrok* ./release/
-          cp -rf ./ngrok-23.05.4_aarch64_generic/ngrok* ./release/
-          cp -rf ./ngrok-23.05.4_aarch64_cortex-a53/ngrok* ./release/
-          cp -rf ./ngrok-23.05.4_aarch64_cortex-a72/ngrok* ./release/
-          # Copy LuCI package
-          cp -rf ./luci-app-ngrok/luci-app-ngrok* ./release/luci-app-ngrok_${{ inputs.luci-app-ngrok_version }}_all.ipk
-        
-      - name: Upload release asset
+          make package/ngrok/compile -j$(nproc)
+          make package/luci-app-ngrok/compile -j$(nproc)
+          
+      - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./release/*
+          file: bin/packages/aarch64_generic/action/*
+          file_glob: true
           overwrite: true
           tag: ${{ inputs.luci-app-ngrok_version }}
-          file_glob: true
           body: |
             # 🌐 Ngrok for OpenWrt
             
@@ -118,6 +80,6 @@ jobs:
             - luci-app-ngrok: Web interface for configuration
             
             ### 📋 Requirements:
-            - OpenWrt 23.xx.x
-            - Supported architectures: x86_64, arm_cortex-a7, aarch64
+            - OpenWrt 23+
+            - Architecture: aarch64
 
