@@ -3,10 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ngrok
-PKG_VERSION:=v3.19.1
+PKG_VERSION:=v3
 PKG_RELEASE:=1
-https://dashboard.ngrok.com/
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-linux-amd64.tgz
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-stable-linux-amd64.tgz
 PKG_SOURCE_URL:=https://bin.equinox.io/c/bNyj1mQVY4c
 PKG_HASH:=skip
 

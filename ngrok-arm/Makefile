@@ -3,10 +3,10 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ngrok
-PKG_VERSION:=v3.19.1
+PKG_VERSION:=v3
 PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-linux-arm64.tgz
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-stable-linux-arm64.tgz
 PKG_SOURCE_URL:=https://bin.equinox.io/c/bNyj1mQVY4c
 PKG_HASH:=skip
 
@@ -15,7 +15,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/ngrok
   SECTION:=net
   CATEGORY:=Network
-  TITLE:=ngrok secure tunnels
+  TITLE:=Secure tunnels to localhost
   URL:=https://ngrok.com
   DEPENDS:=@(aarch64||arm64)
 endef
