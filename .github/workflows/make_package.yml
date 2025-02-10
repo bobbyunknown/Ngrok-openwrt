@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get Package Info
         id: get_info
@@ -60,7 +60,7 @@ jobs:
           NO_SHFMT_CHECK: 1
 
       - name: Upload Core Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ngrok-core-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/ngrok*
@@ -74,7 +74,7 @@ jobs:
     
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Preparing Package
         run: |
@@ -91,7 +91,7 @@ jobs:
           NO_SHFMT_CHECK: 1
 
       - name: Upload LuCI Package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: luci-app-ngrok
           path: ${{ github.workspace }}/artifacts/bin/packages/*/action/luci-app-ngrok*
@@ -103,15 +103,25 @@ jobs:
           release_date=$(date +'%y%m%d')
           release_name="ngrok-${release_date}"
           release_tag="${{ inputs.ngrok_version }}"
-          release_body="# 🚀 Ngrok for OpenWRT
-          
+          release_body="# 🌐 Ngrok for OpenWrt
+
           ## 📦 Release Version: \`${{ inputs.ngrok_version }}\`
           
+          ### 📝 Description
+          This software provides a secure tunneling application for OpenWrt.
+          The application allows users to configure and manage ngrok tunnels
+          on their OpenWrt router, enabling secure remote access to local
+          network services through public endpoints.
+
           ### 🌟 Features:
-          - Ngrok secure tunnels
+          - Secure tunnel management
           - LuCI web interface
           - Support for x86_64 and aarch64
           - Easy configuration through web UI
+          
+          ### 📦 Packages:
+          - ngrok-core: Tunnel service binary
+          - luci-app-ngrok: Web interface for configuration
           
           > 🔔 Always ensure you're using the latest version for the best performance!
           
