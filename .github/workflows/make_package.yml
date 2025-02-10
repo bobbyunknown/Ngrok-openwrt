@@ -24,6 +24,7 @@ jobs:
     outputs:
       luci_version: ${{ steps.get_info.outputs.luci_version }}
       core_version: ${{ steps.get_info.outputs.core_version }}
+      pkg_name: ${{ steps.get_info.outputs.PKG_NAME }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,8 +69,10 @@ jobs:
           sed -i 's/CONFIG_USE_STRIP=y/# CONFIG_USE_STRIP is not set/' .config
           sed -i 's/CONFIG_USE_SSTRIP=y/# CONFIG_USE_SSTRIP is not set/' .config
           make package/${{ steps.get_info.outputs.PKG_NAME }}/compile V=s -j$(nproc) || echo "BUILD_FAILED=true" >> $GITHUB_ENV
+          make package/${{ steps.get_info.outputs.CORE_NAME }}/compile V=s -j$(nproc) || echo "BUILD_FAILED=true" >> $GITHUB_ENV
           if [ "${{ env.BUILD_FAILED }}" != "true" ]; then
             mv bin/packages/x86_64/base/${{ steps.get_info.outputs.PKG_NAME }}*.ipk ../${{ steps.get_info.outputs.PKG_NAME }}_${{ steps.get_info.outputs.luci_version }}_beta_all.ipk
+            mv bin/packages/x86_64/base/ngrok-x86_*.ipk bin/packages/x86_64/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
           fi
 
   build_arm_core:
@@ -83,7 +86,7 @@ jobs:
       - name: Dapatkan Versi Core
         id: get_info
         run: |
-          echo "core_version=3.19.1" >> $GITHUB_OUTPUT
+          echo "core_version=${{ needs.build_x86.outputs.core_version }}" >> $GITHUB_OUTPUT
           echo "CORE_NAME=ngrok-arm" >> $GITHUB_OUTPUT
 
       - name: Siapkan OpenWrt SDK
@@ -112,7 +115,10 @@ jobs:
           sed -i 's/# CONFIG_NO_STRIP is not set/CONFIG_NO_STRIP=y/' .config
           sed -i 's/CONFIG_USE_STRIP=y/# CONFIG_USE_STRIP is not set/' .config
           sed -i 's/CONFIG_USE_SSTRIP=y/# CONFIG_USE_SSTRIP is not set/' .config
-          make package/ngrok-arm/compile V=s -j$(nproc) || echo "BUILD_FAILED=true" >> $GITHUB_ENV
+          make package/${{ steps.get_info.outputs.CORE_NAME }}/compile V=s -j$(nproc) || echo "BUILD_FAILED=true" >> $GITHUB_ENV
+          if [ "${{ env.BUILD_FAILED }}" != "true" ]; then
+            mv bin/packages/aarch64_generic/base/ngrok_*.ipk bin/packages/aarch64_generic/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
+          fi
 
   upload_release:
     runs-on: ubuntu-22.04
@@ -165,6 +171,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ needs.build_x86.outputs.luci_version }} \
-            ./openwrt-sdk/bin/packages/x86_64/base/luci-app-ngrok_${{ needs.build_x86.outputs.luci_version }}-1_all.ipk \
-            ./openwrt-sdk/bin/packages/x86_64/base/ngrok-x86_${{ needs.build_x86.outputs.core_version }}-1_x86_64.ipk \
-            ./openwrt-sdk/bin/packages/aarch64_generic/base/ngrok-arm_${{ needs.build_x86.outputs.core_version }}-1_aarch64.ipk
+            ../${{ needs.build_x86.outputs.pkg_name }}_${{ needs.build_x86.outputs.luci_version }}_beta_all.ipk \
+            ./openwrt-sdk/bin/packages/x86_64/base/ngrok_${{ needs.build_x86.outputs.core_version }}-1_x86_64.ipk \
+            ./openwrt-sdk/bin/packages/aarch64_generic/base/ngrok_${{ needs.build_x86.outputs.core_version }}-1_aarch64.ipk
