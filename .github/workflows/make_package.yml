@@ -20,10 +20,10 @@ on:
         required: true
         default: 'v3.19.1'
         type: string
-      sdk_version:
-        description: 'OpenWrt SDK version'
+      luci-app-ngrok_version:
+        description: 'LuCI App Ngrok version'
         required: true
-        default: '23.05.2'
+        default: '1.0.0'
         type: string
 
 jobs:
@@ -31,58 +31,57 @@ jobs:
     permissions:
       contents: write
     name: Build Core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: x86_64
-            target: x86-64
-          - arch: aarch64
-            target: aarch64_cortex-a53
+        release:
+          - 23.05.4
+        arch:
+          - x86_64
+          - arm_cortex-a7_neon-vfpv4
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - aarch64_generic
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Get Package Info
-        id: get_info
-        run: |
-          echo "version=${{ inputs.ngrok_version }}" >> $GITHUB_OUTPUT
-          echo "PKG_NAME=ngrok" >> $GITHUB_OUTPUT
+        with:
+          ref: main
 
       - name: Preparing Core
         run: |
           mkdir -p feeds artifacts
           cp -rf ./ngrok-arm ./feeds/
           cp -rf ./ngrok-x86 ./feeds/
-          echo "src-link action ${{ github.workspace }}/feeds" > feeds.conf.default
 
       - name: Building Core Packages
-        uses: openwrt/gh-action-sdk@v5
+        uses: nosignals/gh-action-sdk@main
         env:
-          ARCH: ${{ matrix.target }}-${{ inputs.sdk_version }}
+          ARCH: ${{ matrix.arch }}-${{ matrix.release }}
           ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
           FEED_DIR: ${{ github.workspace }}/feeds
           PACKAGES: ngrok
           NO_SHFMT_CHECK: 1
 
-      - name: Upload Core Artifacts
+      - name: Delivering Package
         uses: actions/upload-artifact@v4
         with:
-          name: ngrok-core-${{ matrix.arch }}
-          path: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.target }}/action/ngrok*
+          name: ngrok-${{ matrix.release }}_${{ matrix.arch }}
+          path: |
+            ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/ngrok*
 
   build_luci:
     permissions:
       contents: write
     name: Build LuCI Package
-    runs-on: ubuntu-latest
-    needs: build_core
-    
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Preparing Package
         run: |
@@ -90,7 +89,7 @@ jobs:
           cp -rf ./luci-app-ngrok ./feeds/
 
       - name: Building LuCI Package
-        uses: openwrt/gh-action-sdk@v5
+        uses: nosignals/gh-action-sdk@main
         env:
           ARCH: all
           ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
@@ -98,53 +97,58 @@ jobs:
           PACKAGES: luci-app-ngrok
           NO_SHFMT_CHECK: 1
 
-      - name: Upload LuCI Package
+      - name: Delivering Package
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-ngrok
           path: ${{ github.workspace }}/artifacts/bin/packages/*/action/luci-app-ngrok*
 
-      - name: Create Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  push_packages:
+    needs: [build_core, build_luci]
+    name: Push Packages to Release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download temporary artifact
+        uses: actions/download-artifact@v4
+        
+      - name: Moving artifact to releases
+        shell: bash
         run: |
-          release_date=$(date +'%y%m%d')
-          release_name="ngrok-${release_date}"
-          release_tag="${{ inputs.ngrok_version }}"
-          release_body="# 🌐 Ngrok for OpenWrt
-
-          ## 📦 Release Version: \`${{ inputs.ngrok_version }}\`
-          
-          ### 📝 Description
-          This software provides a secure tunneling application for OpenWrt.
-          The application allows users to configure and manage ngrok tunnels
-          on their OpenWrt router, enabling secure remote access to local
-          network services through public endpoints.
-
-          ### 🌟 Features:
-          - Secure tunnel management
-          - LuCI web interface
-          - Support for x86_64 and aarch64
-          - Easy configuration through web UI
-          
-          ### 📦 Packages:
-          - ngrok-core: Tunnel service binary
-          - luci-app-ngrok: Web interface for configuration
-          
-          > 🔔 Always ensure you're using the latest version for the best performance!
-          
-          *Thank you for using Ngrok for OpenWRT!* 🙏"
-
-          gh release create "$release_tag" \
-            --title "$release_name" \
-            --notes "$release_body" \
-            --generate-notes=false
-
-      - name: Upload Release Assets
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          for file in ${{ github.workspace }}/artifacts/bin/packages/*/action/*; do
-            gh release upload ${{ inputs.ngrok_version }} "$file"
-          done
+          mkdir ./release
+          # Copy core packages
+          cp -rf ./ngrok-23.05.4_x86_64/ngrok* ./release/
+          cp -rf ./ngrok-23.05.4_arm_cortex-a7_neon-vfpv4/ngrok* ./release/
+          cp -rf ./ngrok-23.05.4_aarch64_generic/ngrok* ./release/
+          cp -rf ./ngrok-23.05.4_aarch64_cortex-a53/ngrok* ./release/
+          cp -rf ./ngrok-23.05.4_aarch64_cortex-a72/ngrok* ./release/
+          # Copy LuCI package
+          cp -rf ./luci-app-ngrok/luci-app-ngrok* ./release/luci-app-ngrok_${{ inputs.luci-app-ngrok_version }}_all.ipk
+        
+      - name: Upload release asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./release/*
+          overwrite: true
+          tag: ${{ inputs.luci-app-ngrok_version }}
+          file_glob: true
+          body: |
+            # 🌐 Ngrok for OpenWrt
+            
+            ## 📦 Release Information
+            - Core Version: ${{ inputs.ngrok_version }}
+            - LuCI App Version: ${{ inputs.luci-app-ngrok_version }}
+            
+            ### 📝 Description
+            This software provides a secure remote access and reverse proxy application for OpenWrt.
+            
+            ### 📦 Packages:
+            - ngrok-core: Tunnel service binary
+            - luci-app-ngrok: Web interface for configuration
+            
+            ### 📋 Requirements:
+            - OpenWrt 23.xx.x
+            - Supported architectures: x86_64, arm_cortex-a7, aarch64
 
