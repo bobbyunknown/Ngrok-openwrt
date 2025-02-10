@@ -25,15 +25,8 @@ jobs:
   build_ipk:
     permissions:
       contents: write
-    name: Build Neko
+    name: Build ngrok
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        release:
-          - 23.05.4
-        arch:
-          - x86_64
     
     steps:
       - name: Checkout Repository
@@ -41,26 +34,30 @@ jobs:
         with:
           ref: main
 
-      - name: Preparing Build
+      - name: Set up Docker
         run: |
-          echo ""
-          mkdir feeds artifacts
-          cp -rf ./luci-app-ngrok ./feeds
+          docker pull openwrt/sdk:x86-legacy
+          mkdir -p bin
 
-      - name: Building Packages
-        uses: nosignals/gh-action-sdk@main
-        env:
-          ARCH: ${{ matrix.arch }}-${{ matrix.release }}
-          ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
-          FEED_DIR: ${{ github.workspace }}/feeds
-          PACKAGES: ngrok luci-app-ngrok
-          NO_SHFMT_CHECK: 1
+      - name: Build Package
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/home/build/openwrt/package/feeds \
+            -v ${{ github.workspace }}/bin:/home/build/openwrt/bin \
+            openwrt/sdk:x86-legacy \
+            /bin/bash -c '
+              cd /home/build/openwrt
+              ./scripts/feeds update -a
+              ./scripts/feeds install -a
+              make defconfig
+              make package/feeds/luci-app-ngrok/compile V=s
+            '
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/*
+          file: ${{ github.workspace }}/bin/packages/x86_64/base/*
           file_glob: true
           overwrite: true
           tag: ${{ inputs.luci-app-ngrok_version }}
@@ -68,7 +65,6 @@ jobs:
             # 🌐 Ngrok for OpenWrt
             
             ## 📦 Release Information
-            - Core Version: ${{ inputs.ngrok_version }}
             - LuCI App Version: ${{ inputs.luci-app-ngrok_version }}
             
             ### 📝 Description
