@@ -1,0 +1,32 @@
+{
+    "luci-app-ngrok": {
+        "description": "Grant access to Ngrok procedures",
+        "read": {
+            "file": {
+                "/var/log/ngrok/scripts.log": [ "read" ],
+                "/var/log/ngrok/ngrok.log": [ "read" ],
+                "/etc/init.d/ngrok": [ "exec" ],
+                "/etc/ngrok/core/ngrok-status": [ "exec" ],
+                "/etc/ngrok/configs/ngrok.yml": [ "read" ]
+            },
+            "ubus": {
+                "file": [ "read", "exec" ],
+                "service": [ "list" ]
+            },
+            "uci": [ "ngrok" ]
+        },
+        "write": {
+            "file": {
+                "/var/log/ngrok/scripts.log": [ "write" ],
+                "/var/log/ngrok/ngrok.log": [ "write" ],
+                "/etc/init.d/ngrok": [ "exec" ],
+                "/etc/ngrok/configs/ngrok.yml": [ "write" ]
+            },
+            "ubus": {
+                "file": [ "write", "exec" ],
+                "service": [ "list" ]
+            },
+            "uci": [ "ngrok" ]
+        }
+    }
+}

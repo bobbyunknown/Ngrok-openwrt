@@ -1,0 +1,118 @@
+# This is open source software, licensed under the MIT License.
+# https://opensource.org/license/mit
+# 
+# Copyright (C) 2024 BobbyUnknown
+#
+# Description:
+# This software provides a secure tunneling application for OpenWrt.
+# The application allows users to configure and manage ngrok tunnels
+# on their OpenWrt router, enabling secure remote access to local
+# network services through public endpoints. It features a user-friendly
+# web interface for easy tunnel management and configuration.
+
+#!/bin/sh
+
+CORE_PATH="/usr/bin/ngrok"
+CONFIGS_PATH="/etc/ngrok/configs/ngrok.yml"
+SCRIPTSLOG_PATH="/var/log/ngrok/scripts.log"
+LOGS_PATH="/var/log/ngrok/"
+
+mkdir -p $LOGS_PATH
+
+logs() {
+    echo "[ `date +%T` ] $1"
+    echo "[ `date +%T` ] $1" >> $SCRIPTSLOG_PATH
+}
+
+start() {
+    logs "Starting Ngrok"
+    logs "Checking if Ngrok is running"
+    
+    if pgrep -f "$CORE_PATH" > /dev/null; then
+        logs "Ngrok is already running"
+        exit 0
+    fi
+    
+    logs "Ngrok is not running, starting..."
+    $CORE_PATH start --all --config="$CONFIGS_PATH" >/dev/null 2>&1 &
+    
+    sleep 2
+    if pgrep -f "$CORE_PATH" > /dev/null; then
+        logs "Ngrok Started Successfully"
+        exit 0
+    else
+        logs "Failed to start Ngrok"
+        exit 1
+    fi
+}
+
+stop() {
+    logs "Stopping Ngrok"
+    if pgrep -f "$CORE_PATH" > /dev/null; then
+        killall $CORE_PATH >/dev/null 2>&1
+        sleep 1
+        if ! pgrep -f "$CORE_PATH" > /dev/null; then
+            logs "Ngrok Stopped Successfully"
+            return 0
+        else
+            logs "Failed to stop Ngrok"
+            return 1
+        fi
+    else
+        logs "Ngrok was not running"
+        return 0
+    fi
+}
+
+restart() {
+    logs "Restarting Ngrok"
+    stop
+    local stop_status=$?
+    
+    if [ $stop_status -eq 0 ]; then
+        sleep 1
+        start
+        local start_status=$?
+        if [ $start_status -eq 0 ]; then
+            logs "Ngrok Restarted Successfully"
+            exit 0
+        else
+            logs "Failed to restart Ngrok: Start failed"
+            exit 1
+        fi
+    else
+        logs "Failed to restart Ngrok: Stop failed"
+        exit 1
+    fi
+}
+
+status() {
+    if pgrep -f "$CORE_PATH" > /dev/null; then
+        echo "ngrok is running"
+        exit 0
+    else
+        echo "ngrok is not running"
+        exit 1
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        exit $?
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+esac
+
+exit 0

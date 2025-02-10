@@ -1,0 +1,2 @@
+config ngrok 'config'
+    option enabled '0'

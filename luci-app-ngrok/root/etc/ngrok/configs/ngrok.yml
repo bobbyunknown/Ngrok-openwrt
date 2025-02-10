@@ -1,0 +1,15 @@
+version: "2"
+authtoken: "2KJoFmEj3V8JnjNYG27efcE3UB1_2bhJE4pb2F4eHjyD18JgW"
+log: "/var/log/ngrok/ngrok.log"
+region: "ap"
+
+tunnels:
+  luci:
+    proto: http
+    addr: 80
+  ttyd:
+    proto: http
+    addr: 192.168.2.1:7681
+  ssh:
+    proto: tcp
+    addr: 22
