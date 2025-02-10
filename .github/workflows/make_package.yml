@@ -30,33 +30,28 @@ jobs:
   build_packages:
     name: Build Packages
     runs-on: ubuntu-latest
-    container:
-      image: openwrt/sdk:aarch64_generic-openwrt-24.10
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       
-      - name: Prepare Build
-        run: |
-          mkdir -p feeds/ngrok feeds/luci
-          cp -rf ./ngrok-arm/* ./feeds/ngrok/
-          cp -rf ./luci-app-ngrok/* ./feeds/luci/
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-          
-      - name: Configure Build
-        run: |
-          echo "CONFIG_PACKAGE_ngrok=y" > .config
-          echo "CONFIG_PACKAGE_luci-app-ngrok=y" >> .config
-          make defconfig
-          
-      - name: Build Packages
-        env:
-          NGROK_VERSION: ${{ inputs.ngrok_version }}
-          LUCI_APP_VERSION: ${{ inputs.luci-app-ngrok_version }}
-        run: |
-          make package/ngrok/compile -j$(nproc)
-          make package/luci-app-ngrok/compile -j$(nproc)
-          
+      - name: Build in Docker
+        uses: docker://openwrt/sdk:aarch64_generic-openwrt-24.10
+        with:
+          args: |
+            sh -c "
+            mkdir -p feeds/ngrok feeds/luci &&
+            cp -rf ./ngrok-arm/* ./feeds/ngrok/ &&
+            cp -rf ./luci-app-ngrok/* ./feeds/luci/ &&
+            ./scripts/feeds update -a &&
+            ./scripts/feeds install -a &&
+            echo 'CONFIG_PACKAGE_ngrok=y' > .config &&
+            echo 'CONFIG_PACKAGE_luci-app-ngrok=y' >> .config &&
+            make defconfig &&
+            make package/ngrok/compile -j$(nproc) &&
+            make package/luci-app-ngrok/compile -j$(nproc)
+            "
+
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
