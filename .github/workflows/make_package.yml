@@ -20,6 +20,11 @@ on:
         required: true
         default: 'v3.19.1'
         type: string
+      sdk_version:
+        description: 'OpenWrt SDK version'
+        required: true
+        default: '23.05.2'
+        type: string
 
 jobs:
   build_core:
@@ -30,9 +35,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch:
-          - x86_64
-          - aarch64
+        include:
+          - arch: x86_64
+            target: x86-64
+          - arch: aarch64
+            target: aarch64_cortex-a53
 
     steps:
       - name: Checkout Repository
@@ -53,7 +60,7 @@ jobs:
       - name: Building Core Packages
         uses: openwrt/gh-action-sdk@v5
         env:
-          ARCH: ${{ matrix.arch }}
+          ARCH: ${{ matrix.target }}-${{ inputs.sdk_version }}
           ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
           FEED_DIR: ${{ github.workspace }}/feeds
           PACKAGES: ngrok
@@ -63,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ngrok-core-${{ matrix.arch }}
-          path: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/ngrok*
+          path: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.target }}/action/ngrok*
 
   build_luci:
     permissions:
