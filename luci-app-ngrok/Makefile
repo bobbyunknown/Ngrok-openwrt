@@ -57,10 +57,10 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) ./root/etc/config/ngrok $(1)/etc/config/ngrok
 
-	$(INSTALL_DIR) $(1)/www/luci-static/resources/ngrok
-	$(INSTALL_DATA) ./root/www/luci-static/resources/ngrok/* $(1)/www/luci-static/resources/ngrok/
+	$(INSTALL_DIR) $(1)/www/luci-static/resources/view/ngrok
+	$(INSTALL_DATA) ./htdocs/luci-static/resources/view/ngrok/* $(1)/www/luci-static/resources/view/ngrok/
 	$(INSTALL_DIR) $(1)/www/luci-static/resources/tools
-	$(INSTALL_DATA) ./root/www/luci-static/resources/tools/jsyaml.js $(1)/www/luci-static/resources/tools/
+	$(INSTALL_DATA) ./htdocs/luci-static/resources/tools/jsyaml.js $(1)/www/luci-static/resources/tools/
 endef
 
 define Package/$(PKG_NAME)/postinst

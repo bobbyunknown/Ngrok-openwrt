@@ -5,11 +5,15 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=ngrok
 PKG_VERSION:=v3
 PKG_RELEASE:=1
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-stable-linux-amd64.tgz
+PKG_ARCH=amd64
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-stable-linux-$(PKG_ARCH).tgz
 PKG_SOURCE_URL:=https://bin.equinox.io/c/bNyj1mQVY4c
 PKG_HASH:=skip
 
 include $(INCLUDE_DIR)/package.mk
+
+PKG_LICENSE:=MIT
+PKG_MAINTAINER:=BobbyUnknown
 
 define Package/ngrok
   SECTION:=net

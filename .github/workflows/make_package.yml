@@ -46,7 +46,7 @@ jobs:
 
       - name: Preparing Build
         run: |
-          mkdir feeds artifacts
+          mkdir -p feeds
           cp -rf ./ngrok-x86/* ./feeds/
           cp -rf ./luci-app-ngrok/* ./feeds/
 
