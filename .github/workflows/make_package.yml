@@ -89,7 +89,7 @@ jobs:
           sed -i 's/CONFIG_USE_SSTRIP=y/# CONFIG_USE_SSTRIP is not set/' .config
           make package/ngrok-core/compile V=s -j$(nproc)
           cd bin/packages/aarch64_generic/base/
-          mv ngrok_v3-1_aarch64.ipk ${{ github.workspace }}/release_files/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
+          mv ngrok_v3-1_aarch64_generic.ipk ${{ github.workspace }}/release_files/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
 
       - name: Create Release
         env:
