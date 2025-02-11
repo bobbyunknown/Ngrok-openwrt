@@ -1,5 +1,9 @@
 ## NGROK FOR OPENWRT
 
+[![Telegram Group](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/+TuLCASzJrVJmNzM1)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/bobbyunknown/Ngrok-openwrt/total?style=for-the-badge&logoSize=20&color=0081fa)
+
+
 Aplikasi ini dibuat untuk control openwrt jarak jauh, Agar bisa memantau trafik internet, dan untuk configuasi lain nya.
 
 ### FITUR
