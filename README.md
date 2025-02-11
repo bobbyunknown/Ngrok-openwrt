@@ -4,43 +4,41 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/bobbyunknown/Ngrok-openwrt/total?style=for-the-badge&logoSize=20&color=0081fa)
 
 
-Aplikasi ini dibuat untuk control openwrt jarak jauh, Agar bisa memantau trafik internet, dan untuk configuasi lain nya.
+This application is designed for remote control of OpenWrt, allowing you to monitor internet traffic and perform other configurations.
 
-### FITUR
-- [x] Configurasi config ngrok di luci
-- [x] Multi tunnel
-- [x] Support http tcp untuk remote ssh ataupun web
-- [x] Multi region bisa di pilih di luci
-- [x] Hapus dan menambahkan tunnel di luci
-- [x] Di overview menampilkan link dan ping untuk mempermudah penggunaaan
-- [x] Dan mampilkan log ngrok di luci.
+### FEATURES
+- [x] Ngrok configuration on LuCI
+- [x] Multi-tunnel support
+- [x] HTTP/TCP support for remote SSH or web access
+- [x] Multiple regions selectable on LuCI
+- [x] Add and remove tunnels on LuCI
+- [x] Overview displays links and ping for easier usage
+- [x] Displays ngrok logs on LuCI
 
+### INSTALLATION
 
-### INSTALL
+Download packages from [releases](https://github.com/BobbyUnknown/ngrok-openwrt/releases)
+1. Install ngrok*.ipk for x86 or arm64
+2. Then install luci-app-ngrok*.ipk
 
-Download package dari [release](https://github.com/BobbyUnknown/ngrok-openwrt/releases)
-1. Install ngrok*.ipk x86 atau arm64
-2. Kemundian ini install luci-app-ngrok*.ipk
-
-
-### SCREENSHOT
+### SCREENSHOTS
 
 <details>
 <summary>Overview</summary>
 
-![Jadwal Release RAM](img/overview.png)
+![Overview](img/overview.png)
 </details>
 
 <details>
-<summary>Config</summary>
+<summary>Configuration</summary>
 
-![Jadwal Release RAM](img/config.png)
+![Configuration](img/config.png)
 </details>
 
 <details>
 <summary>Logs</summary>
 
-![Jadwal Release RAM](img/log.png)
+![Logs](img/log.png)
 </details>
 
 ### SPECIAL THANKS
@@ -48,8 +46,7 @@ Download package dari [release](https://github.com/BobbyUnknown/ngrok-openwrt/re
 - DBAI
 - INDOWRT
 
-
-### CREDIT
+### CREDITS
 - [ngrok](https://ngrok.com/)
 - [openwrt](https://openwrt.org/)
 - [luci](https://github.com/openwrt/luci)
