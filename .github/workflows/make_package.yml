@@ -171,6 +171,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ needs.build_x86.outputs.luci_version }} \
-            ../${{ needs.build_x86.outputs.pkg_name }}_${{ needs.build_x86.outputs.luci_version }}_beta_all.ipk \
+            ./openwrt-sdk/bin/packages/x86_64/base/${{ needs.build_x86.outputs.pkg_name }}_${{ needs.build_x86.outputs.luci_version }}_beta_all.ipk \
             ./openwrt-sdk/bin/packages/x86_64/base/ngrok_${{ needs.build_x86.outputs.core_version }}-1_x86_64.ipk \
             ./openwrt-sdk/bin/packages/aarch64_generic/base/ngrok_${{ needs.build_x86.outputs.core_version }}-1_aarch64.ipk
