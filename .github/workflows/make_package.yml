@@ -75,6 +75,14 @@ jobs:
             mv bin/packages/x86_64/base/ngrok_v3-1_x86_64.ipk bin/packages/x86_64/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
           fi
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            ../${{ steps.get_info.outputs.PKG_NAME }}_${{ steps.get_info.outputs.luci_version }}_beta_all.ipk
+            ./openwrt-sdk/bin/packages/x86_64/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
+
   build_arm_core:
     runs-on: ubuntu-22.04
     needs: build_x86
@@ -119,6 +127,12 @@ jobs:
           if [ "${{ env.BUILD_FAILED }}" != "true" ]; then
             mv bin/packages/aarch64_generic/base/ngrok_*.ipk bin/packages/aarch64_generic/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
           fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-arm
+          path: ./openwrt-sdk/bin/packages/aarch64_generic/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
 
   upload_release:
     runs-on: ubuntu-22.04
@@ -166,11 +180,16 @@ jobs:
             --notes "$release_body" \
             --generate-notes=false
 
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
       - name: Upload All Assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ needs.build_x86.outputs.luci_version }} \
-            luci-app-ngrok_${{ needs.build_x86.outputs.luci_version }}_beta_all.ipk \
-            ./openwrt-sdk/bin/packages/x86_64/base/ngrok_${{ needs.build_x86.outputs.core_version }}-1_x86_64.ipk \
-            ./openwrt-sdk/bin/packages/aarch64_generic/base/ngrok_${{ needs.build_x86.outputs.core_version }}-1_aarch64.ipk
+            ./artifacts/packages/luci-app-ngrok_${{ needs.build_x86.outputs.luci_version }}_beta_all.ipk \
+            ./artifacts/packages/ngrok_${{ needs.build_x86.outputs.core_version }}-1_x86_64.ipk \
+            ./artifacts/packages-arm/ngrok_${{ needs.build_x86.outputs.core_version }}-1_aarch64.ipk
