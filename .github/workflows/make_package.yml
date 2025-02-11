@@ -27,9 +27,10 @@ jobs:
       - name: Get Package Info
         id: get_info
         run: |
-          echo "luci_version=$(grep 'PKG_VERSION:=' Makefile | awk -F '=' '{print $2}' | tr -d ' ')" >> $GITHUB_OUTPUT
+          echo "luci_version=$(grep 'PKG_VERSION:=' ${{ github.workspace }}/luci-app-ngrok/Makefile | awk -F '=' '{print $2}' | tr -d ' ')" >> $GITHUB_OUTPUT
           echo "core_version=3.19.1" >> $GITHUB_OUTPUT
           echo "PKG_NAME=luci-app-ngrok" >> $GITHUB_OUTPUT
+          mkdir -p release_files
 
       # Build x86_64
       - name: Setup OpenWrt SDK x86
@@ -45,9 +46,13 @@ jobs:
           cd openwrt-sdk-x86
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          mkdir -p package/luci-app-ngrok package/ngrok-x86
-          cp -r ${{ github.workspace }}/* package/luci-app-ngrok/
-          cp -r ${{ github.workspace }}/ngrok/* package/ngrok-x86/
+          
+          mkdir -p package/luci-app-ngrok
+          mkdir -p package/ngrok-core
+          
+          cp -r ${{ github.workspace }}/luci-app-ngrok/* package/luci-app-ngrok/
+          cp -r ${{ github.workspace }}/ngrok-x86/* package/ngrok-core/
+          
           make defconfig
           sed -i 's/CONFIG_LUCI_SRCDIET=y/# CONFIG_LUCI_SRCDIET is not set/' .config
           sed -i 's/CONFIG_LUCI_JSMIN=y/# CONFIG_LUCI_JSMIN is not set/' .config
@@ -56,11 +61,10 @@ jobs:
           sed -i 's/CONFIG_USE_STRIP=y/# CONFIG_USE_STRIP is not set/' .config
           sed -i 's/CONFIG_USE_SSTRIP=y/# CONFIG_USE_SSTRIP is not set/' .config
           make package/luci-app-ngrok/compile V=s -j$(nproc)
-          make package/ngrok-x86/compile V=s -j$(nproc)
-          cd ..
-          mkdir -p release_files
-          mv openwrt-sdk-x86/bin/packages/x86_64/base/luci-app-ngrok*.ipk release_files/luci-app-ngrok_${{ steps.get_info.outputs.luci_version }}_beta_all.ipk
-          mv openwrt-sdk-x86/bin/packages/x86_64/base/ngrok_v3-1_x86_64.ipk release_files/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
+          make package/ngrok-core/compile V=s -j$(nproc)
+          cd bin/packages/x86_64/base/
+          mv luci-app-ngrok*.ipk ${{ github.workspace }}/release_files/luci-app-ngrok_${{ steps.get_info.outputs.luci_version }}_beta_all.ipk
+          mv ngrok_v3-1_x86_64.ipk ${{ github.workspace }}/release_files/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
 
       # Build ARM64
       - name: Setup OpenWrt SDK ARM
@@ -74,14 +78,18 @@ jobs:
           cd openwrt-sdk-arm
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          cp -r ${{ github.workspace }}/ngrok-arm package/
+          
+          mkdir -p package/ngrok-core
+          
+          cp -r ${{ github.workspace }}/ngrok-arm/* package/ngrok-core/
+          
           make defconfig
           sed -i 's/# CONFIG_NO_STRIP is not set/CONFIG_NO_STRIP=y/' .config
           sed -i 's/CONFIG_USE_STRIP=y/# CONFIG_USE_STRIP is not set/' .config
           sed -i 's/CONFIG_USE_SSTRIP=y/# CONFIG_USE_SSTRIP is not set/' .config
-          make package/ngrok-arm/compile V=s -j$(nproc)
-          cd ..
-          mv openwrt-sdk-arm/bin/packages/aarch64_generic/base/ngrok_v3-1_aarch64.ipk release_files/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
+          make package/ngrok-core/compile V=s -j$(nproc)
+          cd bin/packages/aarch64_generic/base/
+          mv ngrok_v3-1_aarch64.ipk ${{ github.workspace }}/release_files/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
 
       - name: Create Release
         env:
