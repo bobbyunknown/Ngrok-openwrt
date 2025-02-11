@@ -27,7 +27,7 @@ jobs:
       - name: Get Package Info
         id: get_info
         run: |
-          echo "luci_version=$(grep 'PKG_VERSION:=' luci-app-ngrok/Makefile | awk -F '=' '{print $2}' | tr -d ' ')" >> $GITHUB_OUTPUT
+          echo "luci_version=$(grep 'PKG_VERSION:=' Makefile | awk -F '=' '{print $2}' | tr -d ' ')" >> $GITHUB_OUTPUT
           echo "core_version=3.19.1" >> $GITHUB_OUTPUT
           echo "PKG_NAME=luci-app-ngrok" >> $GITHUB_OUTPUT
 
@@ -45,8 +45,9 @@ jobs:
           cd openwrt-sdk-x86
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          cp -r ${{ github.workspace }}/luci-app-ngrok package/
-          cp -r ${{ github.workspace }}/ngrok-x86 package/
+          mkdir -p package/luci-app-ngrok package/ngrok-x86
+          cp -r ${{ github.workspace }}/* package/luci-app-ngrok/
+          cp -r ${{ github.workspace }}/ngrok/* package/ngrok-x86/
           make defconfig
           sed -i 's/CONFIG_LUCI_SRCDIET=y/# CONFIG_LUCI_SRCDIET is not set/' .config
           sed -i 's/CONFIG_LUCI_JSMIN=y/# CONFIG_LUCI_JSMIN is not set/' .config
