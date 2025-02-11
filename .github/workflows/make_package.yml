@@ -19,139 +19,81 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_x86:
+  build_all:
     runs-on: ubuntu-22.04
-    outputs:
-      luci_version: ${{ steps.get_info.outputs.luci_version }}
-      core_version: ${{ steps.get_info.outputs.core_version }}
-      pkg_name: ${{ steps.get_info.outputs.PKG_NAME }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
 
-      - name: Dapatkan Versi dan Nama Paket
+      - name: Get Package Info
         id: get_info
         run: |
           echo "luci_version=$(grep 'PKG_VERSION:=' luci-app-ngrok/Makefile | awk -F '=' '{print $2}' | tr -d ' ')" >> $GITHUB_OUTPUT
           echo "core_version=3.19.1" >> $GITHUB_OUTPUT
           echo "PKG_NAME=luci-app-ngrok" >> $GITHUB_OUTPUT
-          echo "CORE_NAME=ngrok-x86" >> $GITHUB_OUTPUT
 
-      - name: Siapkan OpenWrt SDK
+      # Build x86_64
+      - name: Setup OpenWrt SDK x86
         run: |
           sudo apt update
           sudo apt install build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget tar -y
           wget https://downloads.openwrt.org/releases/23.05.5/targets/x86/64/openwrt-sdk-23.05.5-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           tar xJf openwrt-sdk-23.05.5-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-          mv openwrt-sdk-23.05.5-x86-64_gcc-12.3.0_musl.Linux-x86_64 openwrt-sdk
+          mv openwrt-sdk-23.05.5-x86-64_gcc-12.3.0_musl.Linux-x86_64 openwrt-sdk-x86
 
-      - name: Perbarui dan pasang feeds
+      - name: Build x86 Packages
         run: |
-          cd openwrt-sdk
+          cd openwrt-sdk-x86
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
-      - name: Siapkan Paket
-        run: |
-          cd openwrt-sdk
           cp -r ${{ github.workspace }}/luci-app-ngrok package/
           cp -r ${{ github.workspace }}/ngrok-x86 package/
-
-      - name: Build Paket
-        id: build
-        run: |
-          cd openwrt-sdk && make defconfig
+          make defconfig
           sed -i 's/CONFIG_LUCI_SRCDIET=y/# CONFIG_LUCI_SRCDIET is not set/' .config
           sed -i 's/CONFIG_LUCI_JSMIN=y/# CONFIG_LUCI_JSMIN is not set/' .config
           sed -i 's/CONFIG_LUCI_CSSTIDY=y/# CONFIG_LUCI_CSSTIDY is not set/' .config
           sed -i 's/# CONFIG_NO_STRIP is not set/CONFIG_NO_STRIP=y/' .config
           sed -i 's/CONFIG_USE_STRIP=y/# CONFIG_USE_STRIP is not set/' .config
           sed -i 's/CONFIG_USE_SSTRIP=y/# CONFIG_USE_SSTRIP is not set/' .config
-          make package/${{ steps.get_info.outputs.PKG_NAME }}/compile V=s -j$(nproc) || echo "BUILD_FAILED=true" >> $GITHUB_ENV
-          make package/${{ steps.get_info.outputs.CORE_NAME }}/compile V=s -j$(nproc) || echo "BUILD_FAILED=true" >> $GITHUB_ENV
-          if [ "${{ env.BUILD_FAILED }}" != "true" ]; then
-            mv bin/packages/x86_64/base/${{ steps.get_info.outputs.PKG_NAME }}*.ipk ../${{ steps.get_info.outputs.PKG_NAME }}_${{ steps.get_info.outputs.luci_version }}_beta_all.ipk
-            mv bin/packages/x86_64/base/ngrok_v3-1_x86_64.ipk bin/packages/x86_64/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
-          fi
+          make package/luci-app-ngrok/compile V=s -j$(nproc)
+          make package/ngrok-x86/compile V=s -j$(nproc)
+          cd ..
+          mkdir -p release_files
+          mv openwrt-sdk-x86/bin/packages/x86_64/base/luci-app-ngrok*.ipk release_files/luci-app-ngrok_${{ steps.get_info.outputs.luci_version }}_beta_all.ipk
+          mv openwrt-sdk-x86/bin/packages/x86_64/base/ngrok_v3-1_x86_64.ipk release_files/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: packages
-          path: |
-            openwrt-sdk/bin/packages/x86_64/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
-            luci-app-ngrok_${{ steps.get_info.outputs.luci_version }}_beta_all.ipk
-
-  build_arm_core:
-    runs-on: ubuntu-22.04
-    needs: build_x86
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Dapatkan Versi Core
-        id: get_info
+      # Build ARM64
+      - name: Setup OpenWrt SDK ARM
         run: |
-          echo "core_version=${{ needs.build_x86.outputs.core_version }}" >> $GITHUB_OUTPUT
-          echo "CORE_NAME=ngrok-arm" >> $GITHUB_OUTPUT
-
-      - name: Siapkan OpenWrt SDK
-        run: |
-          sudo apt update
-          sudo apt install build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget tar -y
           wget https://downloads.openwrt.org/releases/23.05.5/targets/armsr/armv8/openwrt-sdk-23.05.5-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           tar xJf openwrt-sdk-23.05.5-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-          mv openwrt-sdk-23.05.5-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64 openwrt-sdk
+          mv openwrt-sdk-23.05.5-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64 openwrt-sdk-arm
 
-      - name: Perbarui dan pasang feeds
+      - name: Build ARM Package
         run: |
-          cd openwrt-sdk
+          cd openwrt-sdk-arm
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
-      - name: Siapkan Paket
-        run: |
-          cd openwrt-sdk
           cp -r ${{ github.workspace }}/ngrok-arm package/
-
-      - name: Build Paket
-        id: build
-        run: |
-          cd openwrt-sdk && make defconfig
+          make defconfig
           sed -i 's/# CONFIG_NO_STRIP is not set/CONFIG_NO_STRIP=y/' .config
           sed -i 's/CONFIG_USE_STRIP=y/# CONFIG_USE_STRIP is not set/' .config
           sed -i 's/CONFIG_USE_SSTRIP=y/# CONFIG_USE_SSTRIP is not set/' .config
-          make package/${{ steps.get_info.outputs.CORE_NAME }}/compile V=s -j$(nproc) || echo "BUILD_FAILED=true" >> $GITHUB_ENV
-          if [ "${{ env.BUILD_FAILED }}" != "true" ]; then
-            mv bin/packages/aarch64_generic/base/ngrok_*.ipk bin/packages/aarch64_generic/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
-          fi
+          make package/ngrok-arm/compile V=s -j$(nproc)
+          cd ..
+          mv openwrt-sdk-arm/bin/packages/aarch64_generic/base/ngrok_v3-1_aarch64.ipk release_files/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: packages-arm
-          path: openwrt-sdk/bin/packages/aarch64_generic/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_aarch64.ipk
-
-  upload_release:
-    runs-on: ubuntu-22.04
-    needs: [build_x86, build_arm_core]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Buat Rilis
+      - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_date=$(date +'%y%m%d')
           release_name="ngrok-${release_date}"
-          release_tag="${{ needs.build_x86.outputs.luci_version }}"
+          release_tag="${{ steps.get_info.outputs.luci_version }}"
           release_body="# 🌐 Ngrok for OpenWrt
 
           ## 📦 Release Version:
-          - LuCI App: \`${{ needs.build_x86.outputs.luci_version }}\`
-          - Ngrok Core: \`${{ needs.build_x86.outputs.core_version }}\`
+          - LuCI App: \`${{ steps.get_info.outputs.luci_version }}\`
+          - Ngrok Core: \`${{ steps.get_info.outputs.core_version }}\`
 
           ### 📝 Description
           This software provides a secure remote access and reverse proxy application for OpenWrt.
@@ -180,16 +122,9 @@ jobs:
             --notes "$release_body" \
             --generate-notes=false
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Upload All Assets
+      - name: Upload Release Files
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload ${{ needs.build_x86.outputs.luci_version }} \
-            artifacts/packages/luci-app-ngrok_${{ needs.build_x86.outputs.luci_version }}_beta_all.ipk \
-            artifacts/packages/ngrok_${{ needs.build_x86.outputs.core_version }}-1_x86_64.ipk \
-            artifacts/packages-arm/ngrok_${{ needs.build_x86.outputs.core_version }}-1_aarch64.ipk
+          ls -la release_files/
+          gh release upload ${{ steps.get_info.outputs.luci_version }} release_files/*
