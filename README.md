@@ -14,7 +14,9 @@ Aplikasi ini dibuat untuk control openwrt jarak jauh, Agar bisa memantau trafik 
 
 ### INSTALL
 
-
+Download package dari [release](https://github.com/BobbyUnknown/ngrok-openwrt/releases)
+1. Install ngrok*.ipk x86 atau arm64
+2. Kemundian ini install luci-app-ngrok*.ipk
 
 
 ### SCREENSHOT
