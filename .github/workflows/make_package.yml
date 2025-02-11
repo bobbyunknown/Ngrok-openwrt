@@ -72,7 +72,7 @@ jobs:
           make package/${{ steps.get_info.outputs.CORE_NAME }}/compile V=s -j$(nproc) || echo "BUILD_FAILED=true" >> $GITHUB_ENV
           if [ "${{ env.BUILD_FAILED }}" != "true" ]; then
             mv bin/packages/x86_64/base/${{ steps.get_info.outputs.PKG_NAME }}*.ipk ../${{ steps.get_info.outputs.PKG_NAME }}_${{ steps.get_info.outputs.luci_version }}_beta_all.ipk
-            mv bin/packages/x86_64/base/ngrok-x86_*.ipk bin/packages/x86_64/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
+            mv bin/packages/x86_64/base/ngrok_v3-1_x86_64.ipk bin/packages/x86_64/base/ngrok_${{ steps.get_info.outputs.core_version }}-1_x86_64.ipk
           fi
 
   build_arm_core:
