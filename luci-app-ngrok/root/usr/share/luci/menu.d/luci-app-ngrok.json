@@ -8,7 +8,7 @@
         },
         "depends": {
             "acl": [ "luci-app-ngrok" ],
-            "uci": { "ngrok": true }
+            "uci": { "ngrok": false }
         }
     },
     "admin/services/ngrok/overview": {
@@ -17,9 +17,6 @@
         "action": {
             "type": "view",
             "path": "ngrok/overview"
-        },
-        "depends": {
-            "acl": [ "luci-app-ngrok" ]
         }
     },
     "admin/services/ngrok/config": {
@@ -28,9 +25,6 @@
         "action": {
             "type": "view",
             "path": "ngrok/config"
-        },
-        "depends": {
-            "acl": [ "luci-app-ngrok" ]
         }
     },
     "admin/services/ngrok/log": {
@@ -39,9 +33,6 @@
         "action": {
             "type": "view",
             "path": "ngrok/log"
-        },
-        "depends": {
-            "acl": [ "luci-app-ngrok" ]
         }
     }
 }

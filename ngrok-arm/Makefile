@@ -18,7 +18,7 @@ PKG_MAINTAINER:=BobbyUnknown
 define Package/ngrok
   SECTION:=net
   CATEGORY:=Network
-  TITLE:=Secure tunnels to localhost
+  TITLE:=ngrok secure tunnels
   URL:=https://ngrok.com
   DEPENDS:=@(aarch64||arm64)
 endef

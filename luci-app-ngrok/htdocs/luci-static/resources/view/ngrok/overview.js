@@ -17,24 +17,67 @@
 'require fs';
 'require ui';
 'require view';
+'require rpc';
+
+var callServiceList = rpc.declare({
+    object: 'service',
+    method: 'list',
+    params: [ 'name' ],
+    expect: { '': {} }
+});
 
 return view.extend({
+    handleAction: function(btn, action, btnText) {
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-spinner"></div> ' + btnText;
+
+        var commands = [];
+        if (action === 'start') {
+            commands = ['enable', 'start'];
+        } else if (action === 'stop') {
+            commands = ['stop', 'disable'];
+        } else {
+            commands = [action];
+        }
+
+        return Promise.all(commands.map(cmd => 
+            fs.exec('/etc/init.d/ngrok', [cmd])
+            .then(function(res) {
+                if (res.code === 0) {
+                    setTimeout(function() {
+                        localStorage.setItem('ngrokNotification', JSON.stringify({
+                            type: 'success',
+                            message: _('Ngrok has been ' + action + 'ed.')
+                        }));
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = btnText;
+                    ui.addNotification(null, E('p', _('Failed to ' + action + ' Ngrok: ' + res.stderr)), 'error');
+                }
+            })
+        )).catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = btnText;
+            ui.addNotification(null, E('p', _('Failed to ' + action + ' Ngrok: ' + err)), 'error');
+        });
+    },
+
     load: function() {
         return Promise.all([
-            fs.exec('/etc/init.d/ngrok', ['status']),
-            fs.exec('/etc/ngrok/core/ngrok-status', [])
+            callServiceList('ngrok')
         ]);
     },
 
     render: function(data) {
         var m, s, o;
-        var running = (data[0] && data[0].stdout) ? data[0].stdout.includes("running") : false;
-        var ngrokData = {};
+        var serviceData = data[0].ngrok || {};
+        var running = false;
+        var self = this;
         
-        try {
-            ngrokData = JSON.parse(data[1].stdout.trim());
-        } catch(e) {
-            console.error('Failed to parse ngrok status:', e);
+        if (serviceData.instances && serviceData.instances.instance1) {
+            running = serviceData.instances.instance1.running || false;
         }
 
         m = new form.Map('ngrok', _('Ngrok'), _('Ngrok client for OpenWRT'));
@@ -43,7 +86,6 @@ return view.extend({
         o = s.option(form.DummyValue, '_buttons');
         o.rawhtml = true;
         o.cfgvalue = function(section_id) {
-            // Add spinner style
             var style = E('style', {}, `
                 .loading-spinner {
                     display: inline-block;
@@ -61,57 +103,20 @@ return view.extend({
                 }
             `);
 
-            var handleAction = function(btn, action, btnText) {
-                btn.disabled = true;
-                btn.innerHTML = '<div class="loading-spinner"></div> ' + btnText;
-
-                var commands = [];
-                if (action === 'start') {
-                    commands = ['enable', 'start'];
-                } else if (action === 'stop') {
-                    commands = ['stop', 'disable'];
-                } else {
-                    commands = [action];
-                }
-
-                return Promise.all(commands.map(cmd => 
-                    fs.exec('/etc/init.d/ngrok', [cmd])
-                    .then(function(res) {
-                        if (res.code === 0) {
-                            setTimeout(function() {
-                                localStorage.setItem('ngrokNotification', JSON.stringify({
-                                    type: 'success',
-                                    message: _('Ngrok has been ' + action + 'ed.')
-                                }));
-                                window.location.reload();
-                            }, 2000);
-                        } else {
-                            btn.disabled = false;
-                            btn.innerHTML = btnText;
-                            ui.addNotification(null, E('p', _('Failed to ' + action + ' Ngrok: ' + res.stderr)), 'error');
-                        }
-                    })
-                )).catch(function(err) {
-                    btn.disabled = false;
-                    btn.innerHTML = btnText;
-                    ui.addNotification(null, E('p', _('Failed to ' + action + ' Ngrok: ' + err)), 'error');
-                });
-            };
-
             return E('div', { 'class': 'cbi-value-field' }, [
                 style,
                 running ? E('button', {
                     'class': 'cbi-button cbi-button-negative',
-                    'click': function(ev) { return handleAction(ev.target, 'stop', _('Stop Ngrok')); }
+                    'click': function(ev) { return self.handleAction(ev.target, 'stop', _('Stop Ngrok')); }
                 }, [ _('Stop Ngrok') ]) : E('button', {
                     'class': 'cbi-button cbi-button-apply',
-                    'click': function(ev) { return handleAction(ev.target, 'start', _('Start Ngrok')); }
+                    'click': function(ev) { return self.handleAction(ev.target, 'start', _('Start Ngrok')); }
                 }, [ _('Start Ngrok') ]),
                 ' ',
                 E('button', {
                     'class': 'cbi-button cbi-button-action',
                     'style': running ? '' : 'display:none',
-                    'click': function(ev) { return handleAction(ev.target, 'restart', _('Restart Ngrok')); }
+                    'click': function(ev) { return self.handleAction(ev.target, 'restart', _('Restart Ngrok')); }
                 }, [ _('Restart Ngrok') ])
             ]);
         };
@@ -129,9 +134,14 @@ return view.extend({
             var statusHtml = E('div', { 'class': 'table', 'id': 'ngrok-status' });
             
             var updateStatus = function() {
-                fs.exec('/etc/ngrok/core/ngrok-status', []).then(function(res) {
+                Promise.all([
+                    L.resolveDefault(fs.exec('curl', ['http://127.0.0.1:4040/api/status']), {}),
+                    L.resolveDefault(fs.exec('curl', ['http://127.0.0.1:4040/api/tunnels']), {})
+                ]).then(function(data) {
                     try {
-                        var data = JSON.parse(res.stdout.trim());
+                        var statusData = JSON.parse(data[0].stdout || '{}');
+                        var tunnelsData = JSON.parse(data[1].stdout || '{"tunnels":[]}');
+                        
                         statusHtml.innerHTML = '';
                         
                         statusHtml.appendChild(
@@ -143,32 +153,35 @@ return view.extend({
                             ])
                         );
 
-                        if (running && data.status === 'online') {
+                        if (running && statusData.status === 'online') {
                             statusHtml.appendChild(
                                 E('div', { 'class': 'tr' }, [
                                     E('div', { 'class': 'td left' }, _('Version')),
-                                    E('div', { 'class': 'td left' }, data.version)
-                                ])
-                            );
-                            statusHtml.appendChild(
-                                E('div', { 'class': 'tr' }, [
-                                    E('div', { 'class': 'td left' }, _('Region')),
-                                    E('div', { 'class': 'td left' }, 
-                                        data.region + ' (' + data.latency + ')')
+                                    E('div', { 'class': 'td left' }, statusData.agent_version)
                                 ])
                             );
 
-                            if (data.tunnels && data.tunnels.length > 0) {
-                                data.tunnels.forEach(function(tunnel) {
+                            if (statusData.session && statusData.session.legs && statusData.session.legs[0]) {
+                                statusHtml.appendChild(
+                                    E('div', { 'class': 'tr' }, [
+                                        E('div', { 'class': 'td left' }, _('Region')),
+                                        E('div', { 'class': 'td left' }, 
+                                            statusData.session.legs[0].region + ' (' + statusData.session.legs[0].latency + ')')
+                                    ])
+                                );
+                            }
+
+                            if (tunnelsData.tunnels && tunnelsData.tunnels.length > 0) {
+                                tunnelsData.tunnels.forEach(function(tunnel) {
                                     statusHtml.appendChild(
                                         E('div', { 'class': 'tr' }, [
                                             E('div', { 'class': 'td left' }, _(tunnel.name)),
                                             E('div', { 'class': 'td left' }, [
                                                 E('a', {
-                                                    'href': tunnel.url,
+                                                    'href': tunnel.public_url,
                                                     'target': '_blank',
                                                     'rel': 'noopener noreferrer'
-                                                }, tunnel.url)
+                                                }, tunnel.public_url)
                                             ])
                                         ])
                                     );
@@ -176,14 +189,14 @@ return view.extend({
                             }
                         }
                     } catch(e) {
-                        console.error('Failed to parse ngrok status:', e);
+                        console.error('Failed to parse ngrok API response:', e);
                     }
                 });
             };
+            
             updateStatus();
             if (running) {
                 var interval = window.setInterval(updateStatus, 5000);
-                
                 statusHtml.addEventListener('remove', function() {
                     window.clearInterval(interval);
                 });
@@ -194,7 +207,6 @@ return view.extend({
 
         return m.render();
     },
-
     handleSaveApply: null,
     handleSave: null,
     handleReset: null
