@@ -7,6 +7,7 @@
                 "/var/log/ngrok/ngrok.log": [ "read" ],
                 "/etc/init.d/ngrok": [ "exec" ],
                 "/etc/ngrok/core/ngrok-status": [ "exec" ],
+                "/usr/bin/curl": [ "exec" ],
                 "/etc/ngrok/configs/ngrok.yml": [ "read" ]
             },
             "ubus": {
