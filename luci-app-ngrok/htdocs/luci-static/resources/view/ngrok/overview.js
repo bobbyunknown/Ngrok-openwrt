@@ -135,8 +135,8 @@ return view.extend({
             
             var updateStatus = function() {
                 Promise.all([
-                    L.resolveDefault(fs.exec('curl', ['http://127.0.0.1:4040/api/status']), {}),
-                    L.resolveDefault(fs.exec('curl', ['http://127.0.0.1:4040/api/tunnels']), {})
+                    L.resolveDefault(fs.exec('/usr/bin/curl', ['http://127.0.0.1:4040/api/status']), {}),
+                    L.resolveDefault(fs.exec('/usr/bin/curl', ['http://127.0.0.1:4040/api/tunnels']), {})
                 ]).then(function(data) {
                     try {
                         var statusData = JSON.parse(data[0].stdout || '{}');
