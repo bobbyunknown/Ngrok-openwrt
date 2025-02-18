@@ -1,7 +1,8 @@
 ## NGROK FOR OPENWRT
 
 [![Telegram Group](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/+TuLCASzJrVJmNzM1)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/bobbyunknown/Ngrok-openwrt/total?style=for-the-badge&logoSize=20&color=0081fa)
+[![GitHub Downloads](https://img.shields.io/github/downloads/bobbyunknown/Ngrok-openwrt/total?style=for-the-badge)](https://github.com/bobbyunknown)
+[![GitHub Release](https://img.shields.io/github/v/release/bobbyunknown/Ngrok-openwrt?style=for-the-badge)](https://github.com/bobbyunknown/Ngrok-openwrt/releases)
 
 
 This application is designed for remote control of OpenWrt, allowing you to monitor internet traffic and perform other configurations.
